@@ -1,0 +1,17 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+
+# Generated data (rebuilt by the ingestion script)
+chroma_db/
+
+# macOS
+.DS_Store
+
+# Leftovers from tooling
+.stale_*
