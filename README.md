@@ -6,7 +6,7 @@ It answers **only** from those documents, cites the **document and page** for ev
 
 Ironhack AI Engineering bootcamp · Week 7 mini-project · LangChain 0.2 · OpenAI · Chroma · FastAPI
 
-**Live demo:** _added after deploy_ (Render free plan: the first question after a pause can take up to a minute while the server wakes up)
+**Live demo: https://ironstore-assistant.onrender.com** (Render free plan: the first visit after a pause can take up to a minute while the server wakes up)
 
 ![Home screen](docs/img/home.png)
 
