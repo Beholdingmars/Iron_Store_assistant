@@ -1,0 +1,18 @@
+# Render Blueprint: New > Blueprint > pick this repo. Render asks for OPENAI_API_KEY once.
+services:
+  - type: web
+    name: ironstore-assistant
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt && python ingest.py
+    startCommand: uvicorn api:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false            # secret: typed in Render, never stored in the repo
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: RATE_PER_MINUTE
+        value: "6"
+      - key: DAILY_CAP
+        value: "300"

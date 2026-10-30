@@ -15,3 +15,7 @@ chroma_db/
 
 # Leftovers from tooling
 .stale_*
+
+# Test output and Node packages
+test/shots/
+node_modules/
