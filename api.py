@@ -1,9 +1,12 @@
 """HTTP API + web interface for the IronStore assistant.  Run:  uvicorn api:app --reload"""
 import json
 import logging
+import os
+import time
+from collections import defaultdict, deque
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -19,18 +22,41 @@ class Question(BaseModel):
     question: str = Field(min_length=1, max_length=500)
 
 
+# --- protect the OpenAI key on a public URL: per-visitor and per-day limits ---------------------
+PER_MINUTE = int(os.getenv("RATE_PER_MINUTE", "6"))
+PER_DAY = int(os.getenv("DAILY_CAP", "300"))
+_recent = defaultdict(deque)
+_today = {"date": "", "count": 0}
+
+
+def rate_limit(request: Request):
+    ip = (request.headers.get("x-forwarded-for") or (request.client.host if request.client else "?")).split(",")[0].strip()
+    now, hits = time.time(), _recent[ip]
+    while hits and now - hits[0] > 60:
+        hits.popleft()
+    if len(hits) >= PER_MINUTE:
+        raise HTTPException(429, "That's a lot of questions in one minute. Wait a moment, then try again.")
+    day = time.strftime("%Y-%m-%d")
+    if _today["date"] != day:
+        _today.update(date=day, count=0)
+    if _today["count"] >= PER_DAY:
+        raise HTTPException(429, "The assistant has answered its daily limit of questions. Try again tomorrow.")
+    hits.append(now)
+    _today["count"] += 1
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", **rag.corpus_stats()}
 
 
-@app.post("/ask")
+@app.post("/ask", dependencies=[Depends(rate_limit)])
 def ask(body: Question):
     """One JSON answer: answer, kind, route, model, citations."""
     return rag.answer_question(body.question.strip())
 
 
-@app.post("/ask/stream")
+@app.post("/ask/stream", dependencies=[Depends(rate_limit)])
 def ask_stream(body: Question):
     """Same answer as /ask, sent as NDJSON events: status -> delta (text pieces) -> done | error."""
     def events():

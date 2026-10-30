@@ -55,10 +55,12 @@ def _find_meta(title: str, metas: list) -> dict | None:
     return None
 
 
-def build_citations(answer: str, metas: list) -> tuple[list, str]:
+def build_citations(answer: str, metas: list, library: list = ()) -> tuple[list, str]:
     """Number citations in order of first appearance.
 
     metas: metadata dicts of the chunks the model was given.
+    library: one metadata dict per document in the store, used when the model cites a document
+             that was not among the retrieved chunks (so its card can still link to the PDF).
     Returns (citations, answer_marked), where answer_marked has every citation replaced by ⟦n⟧
     so the interface can draw a footnote marker in exactly that spot.
     """
@@ -67,7 +69,7 @@ def build_citations(answer: str, metas: list) -> tuple[list, str]:
 
     def replace(match):
         title, page = clean_title(match.group(1)), int(match.group(2))
-        meta = _find_meta(title, metas)
+        meta = _find_meta(title, metas) or _find_meta(title, list(library))
         key = ((meta["doc_title"] if meta else title).lower(), page)
         if key not in index:
             index[key] = len(citations) + 1

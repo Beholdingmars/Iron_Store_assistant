@@ -96,7 +96,7 @@ def retrieve(question: str, route: str) -> list:
 
 def package(answer: str, route: str, docs: list) -> dict:
     """Everything the interface needs about one finished answer."""
-    citations, answer_marked = build_citations(answer, [d.metadata for d in docs])
+    citations, answer_marked = build_citations(answer, [d.metadata for d in docs], library())
     return {
         "answer": answer,
         "answer_marked": answer_marked,
@@ -127,6 +127,17 @@ def stream_answer(question: str):
         parts.append(chunk)
         yield {"type": "delta", "text": chunk}
     yield {"type": "done", **package("".join(parts), route, docs)}
+
+
+@lru_cache(maxsize=1)
+def library() -> list:
+    """One metadata dict per current document (to link citations of documents that weren't retrieved)."""
+    seen = {}
+    for db in (internal_db, catalog_db):
+        for m in db._collection.get(include=["metadatas"])["metadatas"]:
+            if m.get("status", "current") == "current":
+                seen.setdefault(m["doc_title"], m)
+    return list(seen.values())
 
 
 @lru_cache(maxsize=1)
